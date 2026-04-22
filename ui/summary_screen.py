@@ -62,6 +62,7 @@ class SummaryScreen(tk.Frame):
         actions.pack(fill="x")
         self._status = ttk.Label(actions, text="")
         self._status.pack(side="left", anchor="w")
+        ttk.Button(actions, text="Inicio", command=self._go_home).pack(side="right", padx=(0, 8))
         ttk.Button(actions, text="Actualizar", command=self.refresh).pack(side="right", padx=(0, 8))
         ttk.Button(actions, text="Exportar PDF", command=self._export).pack(side="right")
 
@@ -143,6 +144,11 @@ class SummaryScreen(tk.Frame):
         except Exception as exc:
             self._status.configure(text="Error al exportar.")
             messagebox.showerror("Exportar", f"No se pudo exportar:\n{exc}")
+
+    def _go_home(self) -> None:
+        """Regresa a la pantalla de inicio para seleccionar otro archivo."""
+        if self.on_navigate is not None:
+            self.on_navigate("start")
 
     def _set_text(self, content: str) -> None:
         self._text.configure(state="normal")
