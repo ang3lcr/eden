@@ -121,15 +121,13 @@ class SummaryScreen(tk.Frame):
             messagebox.showwarning("Exportar", "Falta seleccionar el PDF de entrada.")
             return
 
-        suggested = getattr(getattr(self.state, "paths", None), "output_pdf", None)
-        path = filedialog.asksaveasfilename(
-            title="Guardar PDF exportado",
-            defaultextension=".pdf",
-            initialfile=str(suggested) if suggested else "",
-            filetypes=[("PDF", "*.pdf")],
-        )
-        if not path:
+        output_pdf = getattr(getattr(self.state, "paths", None), "output_pdf", None)
+        if not output_pdf:
+            messagebox.showwarning("Exportar", "Falta seleccionar el PDF de salida.")
             return
+
+        # Usa directamente la ruta ya seleccionada al principio
+        path = str(output_pdf)
 
         # Ejecuta exportación usando core/exporter.py (sin rasterizar)
         try:

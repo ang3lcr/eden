@@ -51,14 +51,6 @@ class StartScreen(tk.Frame):
         ttk.Entry(in_row, textvariable=self._in_var).pack(side="left", fill="x", expand=True, padx=8)
         ttk.Button(in_row, text="Seleccionar…", command=self._pick_input).pack(side="left")
 
-        # Salida
-        out_row = ttk.Frame(body)
-        out_row.pack(fill="x", pady=(0, 12))
-        ttk.Label(out_row, text="PDF de salida:").pack(side="left")
-        self._out_var = tk.StringVar(value="")
-        ttk.Entry(out_row, textvariable=self._out_var).pack(side="left", fill="x", expand=True, padx=8)
-        ttk.Button(out_row, text="Elegir…", command=self._pick_output).pack(side="left")
-
         # Opciones
         options_box = ttk.LabelFrame(body, text="Procesos", padding=10)
         options_box.pack(fill="x")
@@ -152,16 +144,6 @@ class StartScreen(tk.Frame):
             return
         self._in_var.set(path)
 
-    def _pick_output(self) -> None:
-        path = filedialog.asksaveasfilename(
-            title="Ruta de salida",
-            defaultextension=".pdf",
-            filetypes=[("PDF", "*.pdf")],
-        )
-        if not path:
-            return
-        self._out_var.set(path)
-
     def _start_processing(self) -> None:
         """
         Inicia el pipeline seleccionado.
@@ -169,7 +151,7 @@ class StartScreen(tk.Frame):
         Si `on_process` está definido, delega al controlador externo.
         """
         input_pdf = self._in_var.get().strip()
-        output_pdf = self._out_var.get().strip()
+        output_pdf = ""  # Se selecciona al final del flujo
         detect_blank = bool(self._blank_var.get())
         detect_orient = bool(self._orient_var.get())
         try:
@@ -182,7 +164,7 @@ class StartScreen(tk.Frame):
             msg = (
                 "Configuración lista (UI):\n\n"
                 f"- Entrada: {input_pdf or '(sin seleccionar)'}\n"
-                f"- Salida: {output_pdf or '(sin seleccionar)'}\n"
+                f"- Salida: {output_pdf or '(se selecciona al final)'}\n"
                 f"- Detectar blanco: {'sí' if detect_blank else 'no'} (umbral {threshold:.1f}%)\n"
                 f"- Detectar orientación: {'sí' if detect_orient else 'no'}\n"
             )

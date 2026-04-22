@@ -67,14 +67,26 @@ class Controller:
     def start_processing(
         self,
         input_pdf: str,
-        output_pdf: str,
-        detect_blank: bool,
-        detect_orient: bool,
-        threshold: float,
+        output_pdf: str = "",
+        detect_blank: bool = True,
+        detect_orient: bool = True,
+        threshold: float = 95.0,
         *,
         progress_cb: "callable | None" = None,
     ) -> None:
         try:
+            if not output_pdf.strip():
+                # Si no hay output definido, pedir seleccionar
+                from tkinter import filedialog
+                output_pdf = filedialog.asksaveasfilename(
+                    title="Seleccionar PDF de salida",
+                    defaultextension=".pdf",
+                    filetypes=[("PDF", "*.pdf")],
+                )
+                if not output_pdf:
+                    self._ui(lambda: messagebox.showerror("Procesar", "Debes seleccionar un archivo de salida."))
+                    return
+            
             self._set_options_and_paths(input_pdf, output_pdf, detect_blank, detect_orient, threshold)
             self._open_pdf()
             self._run_selected_processing(progress_cb=progress_cb)
