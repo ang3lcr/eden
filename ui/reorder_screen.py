@@ -8,9 +8,11 @@ from concurrent.futures import Future, ThreadPoolExecutor
 
 try:
     from core.app_state import AppState, PageIndex
+    from core.pdf_loader import PDFLoader
 except Exception:  # pragma: no cover
     AppState = Any  # type: ignore
     PageIndex = int  # type: ignore
+    PDFLoader = Any  # type: ignore
 
 from ui.crop_editor import CropEditor
 
@@ -35,6 +37,7 @@ class ReorderScreen(tk.Frame):
         *,
         thumbnails: Optional[List[Tuple[int, "object"]]] = None,
         thumbnail_provider: Optional[Callable[[int, int], "object"]] = None,
+        pdf_loader: Optional["PDFLoader"] = None,
         columns: int = 5,
         thumb_size: int = 200,
         on_continue: Optional[Callable[[], None]] = None,
@@ -42,6 +45,7 @@ class ReorderScreen(tk.Frame):
         super().__init__(master)
         self.state = state
         self.on_navigate = on_navigate
+        self.pdf_loader = pdf_loader
 
         self._columns = max(1, int(columns))
         self._thumb_size = max(90, int(thumb_size))
@@ -272,7 +276,7 @@ class ReorderScreen(tk.Frame):
             except Exception:
                 return
 
-        CropEditor(self, page_idx=page_idx, initial_margins=initial, on_save=_on_save)
+        CropEditor(self, page_idx=page_idx, pdf_loader=self.pdf_loader, initial_margins=initial, on_save=_on_save)
 
     def _continue(self) -> None:
         self._sync_order_to_state()
@@ -439,4 +443,3 @@ class ReorderScreen(tk.Frame):
                 self._executor.shutdown(wait=False)
             except Exception:
                 pass
-

@@ -121,11 +121,36 @@ class PDFLoader:
         # alpha=False reduce memoria. Usamos RGB.
         doc = self._get_doc_for_thread()
         page = doc.load_page(int(page_idx))
+        media = page.mediabox
         pix = page.get_pixmap(matrix=mat, alpha=False)
 
         # Conversión rápida a PIL sin copiar más de lo necesario.
         img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+        
+        # Debug
+        print(f"[PDFLoader.render_page_image] page={page_idx}, dpi={dpi}")
+        print(f"  MediaBox (pt): {media.width:.1f} x {media.height:.1f}")
+        print(f"  Rendered size (px): {pix.width} x {pix.height}")
+        print(f"  Scale factor: {scale:.4f} (dpi/72)")
+        
         return img
+
+    def get_page_image_path(self, page_idx: PageIndex, *, dpi: int = 150) -> Optional[str]:
+        """
+        Renderiza una página a imagen y la guarda en un archivo temporal, devolviendo la ruta.
+
+        Returns None si falla.
+        """
+        try:
+            img = self.render_page_image(page_idx, dpi=dpi)
+            temp_file = NamedTemporaryFile(suffix=".png", delete=False)
+            img.save(temp_file.name, "PNG")
+            temp_file.close()
+            print(f"[PDFLoader.get_page_image_path] Saved to temp file, size={img.size}")
+            return temp_file.name
+        except Exception as e:
+            print(f"[PDFLoader.get_page_image_path] ERROR: {e}")
+            return None
 
     def render_thumbnail(self, page_idx: PageIndex, *, max_size: int = 220) -> "object":
         """Genera thumbnail optimizado para UI (memoria/velocidad)."""

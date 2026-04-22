@@ -5,6 +5,7 @@ from tkinter import ttk
 from typing import Callable, Optional, Tuple, Literal
 
 from core.app_state import CropMargins, PageIndex
+from core.pdf_loader import PDFLoader
 
 
 class CropEditor(tk.Toplevel):
@@ -22,11 +23,13 @@ class CropEditor(tk.Toplevel):
         master: tk.Misc,
         page_idx: PageIndex,
         image: Optional["object"] = None,
+        pdf_loader: Optional[PDFLoader] = None,
         initial_margins: Optional[CropMargins] = None,
         on_save: Optional[Callable[[PageIndex, CropMargins], None]] = None,
     ):
         super().__init__(master)
         self.page_idx = page_idx
+        self.pdf_loader = pdf_loader
         self.on_save = on_save
 
         self.title(f"Recorte - Página {page_idx + 1}")
@@ -100,6 +103,12 @@ class CropEditor(tk.Toplevel):
         # Asegura sincronía desde el rect actual
         self._sync_entries_from_rect()
         margins: CropMargins = (int(self._left.get()), int(self._top.get()), int(self._right.get()), int(self._bottom.get()))
+        
+        # Debug: mostrar márgenes guardados
+        img_w, img_h = self._pil_image.size
+        print(f"DEBUG CROP EDITOR: Image size (150 DPI)={img_w}px x {img_h}px")
+        print(f"DEBUG CROP EDITOR: Margins saved (px, 150 DPI)={margins}")
+        
         if self.on_save is not None:
             self.on_save(self.page_idx, margins)
         self.destroy()
@@ -109,7 +118,20 @@ class CropEditor(tk.Toplevel):
     # -----------------------------
 
     def _ensure_image(self, image: Optional["object"]) -> "object":
-        from PIL import Image, ImageDraw, ImageFont
+        from PIL import Image, ImageDraw
+
+        if self.pdf_loader is not None:
+            image_path = self.pdf_loader.get_page_image_path(self.page_idx)
+            if image_path is not None:
+                img = Image.open(image_path)
+                print(f"[CropEditor._ensure_image] Loaded image from PDF, size={img.size}")
+                return img
+            else:
+                # Fallback simple
+                img = Image.new("RGB", (800, 600), "white")
+                d = ImageDraw.Draw(img)
+                d.text((10, 10), "Error loading page image", fill="red")
+                return img
 
         if image is None:
             # Demo: hoja grande con margen visible
@@ -119,6 +141,7 @@ class CropEditor(tk.Toplevel):
             for y in range(260, 2040, 110):
                 d.line((180, y, 1420, y), fill="#222", width=6)
             try:
+                from PIL import ImageFont
                 font = ImageFont.truetype("arial.ttf", 72)
             except Exception:
                 font = ImageFont.load_default()
@@ -127,8 +150,6 @@ class CropEditor(tk.Toplevel):
 
         # PIL.Image
         try:
-            from PIL import Image
-
             if isinstance(image, Image.Image):
                 return image
         except Exception:
@@ -167,6 +188,7 @@ class CropEditor(tk.Toplevel):
         # Render imagen escalada
         disp = self._pil_image.resize((disp_w, disp_h))
         self._photo = ImageTk.PhotoImage(disp)
+        self.photo_image = self._photo
 
         self._canvas.delete("all")
         self._canvas.create_image(x0, y0, image=self._photo, anchor="nw")
@@ -381,5 +403,3 @@ class CropEditor(tk.Toplevel):
 
         self._crop_rect_img = (x0, y0, x1, y1)
         self._render_all()
-
-

@@ -60,6 +60,9 @@ class Cropper:
         v_rect = page.rect
         l, t, r, b = (float(margins[0]), float(margins[1]), float(margins[2]), float(margins[3]))
 
+        # Debug
+        print(f"DEBUG APPLY_CROP: page.rect={v_rect}, margins (pt)=({l:.1f},{t:.1f},{r:.1f},{b:.1f})")
+
         # 2. Definir el nuevo área de visualización (Crop) en espacio VISUAL
         # y0 es arriba, y1 es abajo. Sumamos 't' para bajar el borde superior,
         # restamos 'b' para subir el borde inferior.
@@ -68,8 +71,11 @@ class Cropper:
         vx1 = v_rect.x1 - r
         vy1 = v_rect.y1 - b
 
+        print(f"DEBUG APPLY_CROP: visual_crop_rect=({vx0:.1f},{vy0:.1f},{vx1:.1f},{vy1:.1f})")
+
         # Asegurar que el recorte no invierta la página o sea demasiado pequeño
         if vx1 <= vx0 + 1 or vy1 <= vy0 + 1:
+            print(f"DEBUG APPLY_CROP: Recorte demasiado pequeño o invertido, ignorando")
             return
 
         visual_crop_rect = fitz.Rect(vx0, vy0, vx1, vy1)
@@ -81,8 +87,11 @@ class Cropper:
             # ~ es el operador para la matriz inversa en PyMuPDF
             internal_crop_rect = visual_crop_rect * ~page.rotation_matrix
             
+            print(f"DEBUG APPLY_CROP: internal_crop_rect={internal_crop_rect}")
+            
             # 4. Aplicar el recorte al CropBox interno del PDF
             page.set_cropbox(internal_crop_rect)
-        except Exception:
+        except Exception as e:
             # Fallback simple en caso de que la matriz sea singular (poco común)
+            print(f"DEBUG APPLY_CROP: Error con rotation_matrix: {e}, usando visual rect")
             page.set_cropbox(visual_crop_rect)

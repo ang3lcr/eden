@@ -122,11 +122,14 @@ class PDFExporter:
 
     def _crop_margins_px_to_pt(self, src: "fitz.Document", src_page_idx: int, margins_px: "object") -> "object":
         """
-        Convierte márgenes guardados desde la UI (px) a puntos PDF (pt) para esa página.
+        Convierte márgenes guardados desde la UI (px a 150 DPI) a puntos PDF (pt).
+
+        IMPORTANTE: Los márgenes se guardan desde CropEditor que renderiza a 150 DPI.
+        Para consistencia, renderizamos también a 150 DPI aquí.
 
         Estrategia:
         - obtiene MediaBox (pt) de la página fuente
-        - renderiza a 72 dpi (scale=1) para obtener tamaño en pixeles aproximado
+        - renderiza a 150 dpi (misma que CropEditor) para obtener tamaño en píxeles
         - convierte px->pt proporcionalmente por eje
 
         Esto mantiene calidad porque el recorte final se aplica como cropbox, no rasteriza.
@@ -137,14 +140,20 @@ class PDFExporter:
         lpx, tpx, rpx, bpx = (float(margins_px[0]), float(margins_px[1]), float(margins_px[2]), float(margins_px[3]))
 
         src_page = src.load_page(int(src_page_idx))
-        media = getattr(src_page, "mediabox", None) or src_page.rect
+        media = getattr(src_page, "rect", None) or src_page.mediabox  # Usar rect para considerar rotación
         w_pt = float(media.width)
         h_pt = float(media.height)
 
-        # Render mínimo a 72dpi para estimar W/H en pixeles
-        pix = src_page.get_pixmap(matrix=fitz.Matrix(1, 1), alpha=False)
+        # Renderizar a 150 DPI (mismo que en CropEditor) para que los márgenes sean consistentes
+        # 150 DPI = escala de 150/72 ≈ 2.083 en relación a 72 DPI
+        scale_150dpi = 150.0 / 72.0
+        pix = src_page.get_pixmap(matrix=fitz.Matrix(scale_150dpi, scale_150dpi), alpha=False)
         w_px = float(pix.width) if pix.width else 1.0
         h_px = float(pix.height) if pix.height else 1.0
+
+        # Debug: mostrar conversión
+        print(f"DEBUG CROP: PDF size={w_pt:.1f}pt x {h_pt:.1f}pt, Render size={w_px:.0f}px x {h_px:.0f}px")
+        print(f"DEBUG CROP: Margins (px, 150 DPI)={lpx:.0f},{tpx:.0f},{rpx:.0f},{bpx:.0f}")
 
         lpt = (lpx / w_px) * w_pt
         rpt = (rpx / w_px) * w_pt
@@ -156,6 +165,8 @@ class PDFExporter:
         rpt = max(0.0, rpt)
         tpt = max(0.0, tpt)
         bpt = max(0.0, bpt)
+
+        print(f"DEBUG CROP: Margins (pt)={lpt:.1f},{tpt:.1f},{rpt:.1f},{bpt:.1f}")
 
         return (lpt, tpt, rpt, bpt)
 

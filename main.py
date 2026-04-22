@@ -345,6 +345,7 @@ def main() -> None:
                 state,
                 nav,
                 thumbnail_provider=controller.thumbnail_provider,
+                pdf_loader=controller.ctx.loader if controller.ctx else None,
                 on_continue=controller.on_reorder_continue,
             ),
         )
